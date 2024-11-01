@@ -1,6 +1,7 @@
 # In this file a user can play a sliding tile puzzle of various sizes.
 
 import pygame
+import random
 
 
 def main():
@@ -78,6 +79,30 @@ def move_tile(grid: list, tile_list: list, tile_number: int, display=False, surf
         moving_tiles = pygame.sprite.Group()
         moving_tiles.add(moving_tile)
   
+
+def check_win(grid):
+    """Given a grid of spaces, checks to see whether each space contains the correct tile.
+    Returns True if each is correct and False if even one is out of place."""
+    for row in grid:
+        for entry in row:
+            if entry.correct_tile!=entry.current_tile:
+                return False
+    return True
+
+
+def scramble_tiles(moves: int, grid, tile_list):
+    """Given a grid of spaces, a list of tiles, and a number of moves (n), the function moves tiles n times."""
+    # Set the selected tile to an impossible tile number
+    chosen_tile=-1
+    # Iterate n times
+    for i in range(moves):
+        available_moves=determine_available_moves(grid,tile_list[0].grid_coordinates)
+        # Try to avoid moving the same tile back and forth repeatedly.
+        if chosen_tile in available_moves:
+            available_moves.remove(chosen_tile)
+        # Choose the tile to move at random from the available options.
+        chosen_tile=random.choice(available_moves)
+        move_tile(grid,tile_list,chosen_tile)
 
 
 
@@ -236,6 +261,8 @@ for i in range(game_rows):
     for j in range(game_columns):
         tile_list[grid[i][j].correct_tile].grid_coordinates=(i,j)
 
+# Scramble the grid.
+scramble_tiles(1000,grid,tile_list)
 
 time = pygame.time.Clock()
 ticks = 0
@@ -243,7 +270,7 @@ ticks = 0
 moving=False
 
 play=True
-
+surface.fill('black')
 while play==True:
     pygame.time.delay(10) 
     
@@ -256,62 +283,13 @@ while play==True:
             
             for tile_number in can_move:
                 if tile_list[tile_number].rect.collidepoint(event.pos):
-                    print("You clicked tile {}!".format(tile_number))
                     move_tile(grid,tile_list,tile_number)
-                    can_move=determine_available_moves(grid,tile_list[0].grid_coordinates)
-                    print("Can move:",can_move)
+                    if check_win(grid)==True:
+                        print("You just won!")
+                        play=False 
+                    
 
-    keys = pygame.key.get_pressed() 
-    if keys[pygame.K_LEFT]: 
-        print()  
-        # decrement in x co-ordinate 
-        for row in grid:
-            for column in row:
-                print(column.current_tile)
-          
-    # if left arrow key is pressed 
-    if keys[pygame.K_RIGHT]: 
-        print("Blank:",tile_list[0].grid_coordinates)
-        print("Current:",grid[tile_list[0].grid_coordinates[0]][tile_list[0].grid_coordinates[1]].current_tile)
-        print("Correct:",grid[tile_list[0].grid_coordinates[0]][tile_list[0].grid_coordinates[1]].correct_tile)
-        # increment in x co-ordinate 
-#       rectangle.x += 10 
-         
-    # if left arrow key is pressed    
-    if keys[pygame.K_UP]: 
-          
-        # decrement in y co-ordinate 
-        print("Tile 12:",tile_list[12].number)
-        print(tile_list[12].grid_coordinates)
-        print("Current:",grid[tile_list[12].grid_coordinates[0]][tile_list[12].grid_coordinates[1]].current_tile)
-        print("Correct:",grid[tile_list[12].grid_coordinates[0]][tile_list[12].grid_coordinates[1]].correct_tile)
-          
-    # if left arrow key is pressed    
-    if keys[pygame.K_DOWN]: 
-        # increment in y co-ordinate 
-        rectangle.y += 10
-        print(target)
-    if moving:
-        if rectangle_pos==rectangle_pos2:
-            moving=False
-            print(rectangle.x)
-            print("Made it!")
-        else:
-            rectangle_pos.move_towards_ip(target,2)
-            rectangle_pos2.move_towards_ip(target,10)
-            tile_sprite.vector.move_towards_ip(target,5)
-            tile_sprite.rect.topleft=tile_sprite.vector
-
-
-
-    
-    pygame.draw.rect(surface,'blue',(rectangle_pos,(100,100)))
-    pygame.draw.rect(surface,'red',(rectangle_pos2,(100,100)))
-#    tiles.clear(surface,pygame.surface.Surface(surface.get_size()))
     tiles.clear(surface,pygame.surface.Surface(surfrect.size))
-    tiles.draw(surface)
-
-    surface.fill('black')
     tiles.draw(surface)
 
     
@@ -320,4 +298,6 @@ while play==True:
     # Sets a constant frame rate.
     
     pygame.display.update() 
+    if play==False:
+        pygame.time.delay(6000) 
 pygame.quit()
