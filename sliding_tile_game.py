@@ -55,7 +55,7 @@ def determine_available_moves(grid: list, blank_location: set):
         available_moves.append(number)
     return available_moves
 
-def move_tile(grid: list, tile_list: list, tile_number: int, display=False, surface=None):
+def move_tile(grid: list, tile_list: list, tile_number: int, display=False):
     """Takes a grid of spaces, a list of tiles, the number of the tile to be moved, and a surface to draw on.
     The function will exchange the given tile with the blank tile and update the attributes of the Spaces and Tiles.
     If the optional argument display is set to True, then the function also animates the movement of the tile on the surface."""
@@ -71,13 +71,12 @@ def move_tile(grid: list, tile_list: list, tile_number: int, display=False, surf
     grid[blank_tile.grid_coordinates[0]][blank_tile.grid_coordinates[1]].current_tile=0
     grid[target_coordinates[0]][target_coordinates[1]].current_tile=tile_number
     moving_tile.grid_coordinates=target_coordinates
-
     if display==False:
         moving_tile.vector=target_vector
         moving_tile.update_rect()
-    else:
-        moving_tiles = pygame.sprite.Group()
-        moving_tiles.add(moving_tile)
+    return target_vector
+
+
   
 
 def check_win(grid):
@@ -268,36 +267,42 @@ time = pygame.time.Clock()
 ticks = 0
 
 moving=False
+moving_tile_number=None
+target=None
 
 play=True
+win=False
 surface.fill('black')
 while play==True:
-    pygame.time.delay(10) 
-    
-
     for event in pygame.event.get():
         if event.type==pygame.QUIT:
             play=False
-        if event.type == pygame.MOUSEBUTTONDOWN:
+        if event.type == pygame.MOUSEBUTTONDOWN and moving==False:
             can_move=determine_available_moves(grid,tile_list[0].grid_coordinates)
-            
             for tile_number in can_move:
                 if tile_list[tile_number].rect.collidepoint(event.pos):
-                    move_tile(grid,tile_list,tile_number)
-                    if check_win(grid)==True:
-                        print("You just won!")
-                        play=False 
+                    moving=True
+                    moving_tile_number=tile_number
+                    target=move_tile(grid,tile_list,tile_number, display=True)
                     
 
+
+
+    if moving==True:
+        tile_list[moving_tile_number].move_towards_ip(target,15)
+        if tile_list[moving_tile_number].vector==target:
+            moving=False
+            win=check_win(grid)
+    if win==True:
+        print("You just won!")
+        play=False
+        pygame.time.delay(6000)
+    
     tiles.clear(surface,pygame.surface.Surface(surfrect.size))
     tiles.draw(surface)
-
-    
-
     ticks = time.tick(30) 
     # Sets a constant frame rate.
     
-    pygame.display.update() 
-    if play==False:
-        pygame.time.delay(6000) 
+    pygame.display.update()
+
 pygame.quit()
