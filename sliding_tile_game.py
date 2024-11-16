@@ -2,6 +2,7 @@
 
 import pygame
 import random
+import time
 
 
 def main():
@@ -105,6 +106,36 @@ def scramble_tiles(moves: int, grid, tile_list):
 
 
 
+class VictoryBanner(pygame.sprite.Sprite):
+    """
+    A victory banner to be displayed upon successfully completing the game.
+    """
+    def __init__(self, height: int, width: int, font_size: int, surface):
+        pygame.sprite.Sprite.__init__(self) # Inherit class properties from Sprite
+        # First set the number, size, and vector location of the tile.
+        self.height= height
+        self.width= width
+        self.font_size= font_size
+        self.font= pygame.font.SysFont('Arial', self.font_size)
+
+        text=self.font.render(str("YOU WIN!"), True, 'black')
+        image=pygame.surface.Surface((self.width,self.height),pygame.SRCALPHA)
+        rect=pygame.Rect((0,0),(self.width,self.height))
+        rect.center=surface.get_rect().center
+        self.rect=rect
+        banner=pygame.draw.rect(image,'red',((0,0),(self.width,self.height)))
+        # The following line of code sets text_rect to be just large enough to fit the text without moving its center.
+        text_rect=text.get_rect(center=banner.center)
+        # We blit the text onto the image in the right position (determined by text_rect)
+        image.blit(text,text_rect)
+        # Finally we set the transparency of the banner.
+        image.set_alpha(220)
+        self.image=image
+
+    def draw(self, surface):
+            """Draws the image of the tile onto the given surface."""
+            surface.blit(self.image,self.rect)
+
 
 class Tile(pygame.sprite.Sprite):
     """ 
@@ -135,17 +166,17 @@ class Tile(pygame.sprite.Sprite):
         image=pygame.surface.Surface(self.rect.size, pygame.SRCALPHA)
         
         # Draw the larger square onto the image surface.
-        text_rect=pygame.draw.rect(image,'light gray',((0,0),self.rect.size), border_radius=8)
+        outer_rect=pygame.draw.rect(image,'light gray',((0,0),self.rect.size), border_radius=8)
 
         # Create a smaller rectangle (centered inside the larger) for visual effect.  
         # The size of this smaller rectangle can be controlled by adjusting size-x
         inner_rect=pygame.Rect((0,0),(size-10,size-10))
-        inner_rect.center=text_rect.center
+        inner_rect.center=outer_rect.center
         # Draw the smaller rectangle onto the image surface
         # The width of the rectangle can be adjusted in the keyword argument.
-        pygame.draw.rect(image,'dark gray',inner_rect, width=3,border_radius=8)
-        # The following line of code sets text_rect to be just large enough to fit the text without moving its center.
-        text_rect=text.get_rect(center=text_rect.center)
+        pygame.draw.rect(image,'dark gray',outer_rect, width=3,border_radius=8)
+        # The following line of code sets text_rect to be just large enough to fit the text and centers it in the large rectangle.
+        text_rect=text.get_rect(center=outer_rect.center)
         # We blit the text onto the image in the right position (determined by text_rect)
         image.blit(text,text_rect)
         # If the tile number is 0 we turn the entire image invisible.
@@ -221,12 +252,15 @@ moving_tiles = pygame.sprite.Group()
 
 surface=pygame.display.set_mode(((tile_size*game_columns)+(tile_spacing*(game_columns-1))+(2*screen_border),
                                  (tile_size*game_rows)+(tile_spacing*(game_rows-1))+(2*screen_border)))
+background=pygame.Surface(surface.get_size())
+
 surfrect=surface.get_rect()
 rectangle_pos=pygame.Vector2(0,0)
 rectangle_pos2=pygame.Vector2(900,0)
 rectangle=pygame.Rect(rectangle_pos,(100,100))
 tile_sprite=Tile(50,80,(pygame.Vector2(500,600)))
 tiles.add(tile_sprite)
+banner=VictoryBanner(height=int(surfrect.height/6),width=surfrect.width,font_size=int(surfrect.height/8),surface=surface)
 
 
 # We now create a list of tiles indexed by tile number (such that the last, blank tile is labeled 0).
@@ -263,7 +297,7 @@ for i in range(game_rows):
 # Scramble the grid.
 scramble_tiles(1000,grid,tile_list)
 
-time = pygame.time.Clock()
+clock = pygame.time.Clock()
 ticks = 0
 
 moving=False
@@ -294,15 +328,26 @@ while play==True:
             moving=False
             win=check_win(grid)
     if win==True:
-        print("You just won!")
-        play=False
-        pygame.time.delay(6000)
-    
-    tiles.clear(surface,pygame.surface.Surface(surfrect.size))
-    tiles.draw(surface)
-    ticks = time.tick(30) 
-    # Sets a constant frame rate.
-    
-    pygame.display.update()
+        surface.blit(background,(0,0))
+        tiles.clear(surface,background)
+        tiles.draw(surface)
+        banner.draw(surface)
+        pygame.display.update()
+        start = time.time()
+        while time.time()<start+10 and play==True:
+            for event in pygame.event.get():
+                if event.type==pygame.QUIT:
+                    play=False
+        play=False            
+                    
+    else:
+        surface.blit(background,(0,0))
+        tiles.clear(surface,background)
+        tiles.draw(surface)
+
+        # Sets a constant frame rate.
+        ticks = clock.tick(30) 
+        
+        pygame.display.update()
 
 pygame.quit()
